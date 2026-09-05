@@ -7,6 +7,8 @@ Press it again: everything comes back, with your windows exactly where they were
 
 No cables, no smart plugs, no scripts to run. A small tray icon does it all.
 
+<p align="center"><img src="docs/screenshot.png" width="480" alt="MonitorFollow settings window"></p>
+
 ## Why
 
 When you work on a laptop docked to a big external monitor, "turning the desk off" is annoying:
@@ -48,6 +50,9 @@ Tested with a Dell U3415W over HDMI on Windows 11. Reports for other monitors ar
 4. Press the power button on the monitor. Done.
 
 Tray icon colours: green = monitor on, grey = monitor off (second screen only), red = monitor not found, yellow = paused.
+Left-click the icon to open the window, right-click for the quick menu. Closing the window keeps MonitorFollow running in the tray; use *Exit* in the menu to quit.
+
+The UI is native WPF with the Fluent design of Windows 11 (Mica, light/dark follows the system). Start with `MonitorFollow.exe --show` to open the window immediately.
 
 ## Settings
 
@@ -58,14 +63,14 @@ Tray icon colours: green = monitor on, grey = monitor off (second screen only), 
 | Consecutive "off" readings | 2 | Debounce, so a single glitchy reading doesn't switch your screens. |
 | Restore window positions | on | Put windows back on the other screens when they return. |
 | Emergency hotkey | on | `Ctrl+Alt+Shift+E` = restore all screens now. |
-| Start with Windows | off | Adds a per-user Run entry, no admin needed. |
+| Start with Windows | off | Adds a per-user Run entry pointing at the current exe, no admin needed. Move the exe first, then enable it. |
 
 Settings and log live in `%APPDATA%\MonitorFollow\`.
 
 ## Build from source
 
 ```powershell
-git clone https://github.com/esperoweb/MonitorFollow
+git clone https://github.com/f-liva/MonitorFollow
 cd MonitorFollow
 dotnet publish src/MonitorFollow -c Release -r win-x64 --self-contained false -o out
 ```

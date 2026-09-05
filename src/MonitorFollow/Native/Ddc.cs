@@ -58,7 +58,22 @@ public static class Ddc
 
     /// <summary>True when the MCCS capabilities string advertises VCP D6.</summary>
     public static bool SupportsPowerMode(string? caps)
-        => caps is not null && Regex.IsMatch(caps, @"vcp\s*\([^)]*\bD6\b", RegexOptions.IgnoreCase);
+    {
+        // MCCS capabilities look like "(prot(monitor)type(LCD)cmds(...)vcp(02 04 ... 14(04 0B) ... D6(01 04 05) ...)mccs_ver(2.1))".
+        // Nested groups inside vcp(...) make a simple [^)]* match fail, so scan the vcp section token by token.
+        if (caps is null) return false;
+        var m = Regex.Match(caps, @"vcp\s*\(", RegexOptions.IgnoreCase);
+        if (!m.Success) return false;
+        int depth = 0, i = m.Index + m.Length - 1;
+        var start = i + 1;
+        for (; i < caps.Length; i++)
+        {
+            if (caps[i] == '(') depth++;
+            else if (caps[i] == ')' && --depth == 0) break;
+        }
+        var section = caps.Substring(start, Math.Max(0, i - start));
+        return Regex.IsMatch(section, @"(^|[\s(])D6([\s()]|$)", RegexOptions.IgnoreCase);
+    }
 
     public static string PowerToText(int? v) => v switch
     {

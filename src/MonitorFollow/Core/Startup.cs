@@ -8,7 +8,7 @@ public static class Startup
     private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
     private const string ValueName = "MonitorFollow";
 
-    private static string ExePath => Environment.ProcessPath ?? Application.ExecutablePath;
+    private static string ExePath => Environment.ProcessPath ?? System.Reflection.Assembly.GetEntryAssembly()!.Location;
 
     public static bool IsEnabled()
     {
