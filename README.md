@@ -7,8 +7,6 @@ Press it again: everything comes back, with your windows exactly where they were
 
 No cables, no smart plugs, no scripts to run. A small tray icon does it all.
 
-![tray icon states](docs/tray.png)
-
 ## Why
 
 When you work on a laptop docked to a big external monitor, "turning the desk off" is annoying:
