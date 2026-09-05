@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/hero.png" alt="MonitorFollow — when one monitor turns off, they all do" width="100%"></p>
+
 # MonitorFollow
 
 **Your laptop screen follows the power button of your external monitor.**
@@ -6,8 +8,6 @@ Press the power button on your external monitor: the laptop panel (and any other
 Press it again: everything comes back, with your windows exactly where they were.
 
 No cables, no smart plugs, no scripts to run. A small tray icon does it all.
-
-<p align="center"><img src="docs/screenshot.png" width="480" alt="MonitorFollow settings window"></p>
 
 ## Why
 
@@ -48,6 +48,8 @@ Tested with a Dell U3415W over HDMI on Windows 11. Reports for other monitors ar
 2. Run it. A monitor icon appears in the notification area (bottom right, maybe behind the `^` arrow).
 3. The Settings window opens on first run: pick your external monitor, tick **Start with Windows**, Save.
 4. Press the power button on the monitor. Done.
+
+<p align="center"><img src="docs/screenshot.png" width="480" alt="MonitorFollow settings window"></p>
 
 Tray icon colours: green = monitor on, grey = monitor off (second screen only), red = monitor not found, yellow = paused.
 Left-click the icon to open the window, right-click for the quick menu. Closing the window keeps MonitorFollow running in the tray; use *Exit* in the menu to quit.
