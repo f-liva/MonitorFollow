@@ -84,6 +84,7 @@ Add `--self-contained true` for a single exe that does not need the .NET runtime
 - **My monitor is not listed.** Enable DDC/CI in the OSD. Make sure the cable goes to the GPU and not through a DisplayLink dock. Some KVMs block DDC/CI.
 - **The monitor is listed but nothing happens when I switch it off.** Some monitors stop answering DDC/CI when off instead of reporting "off". Open Settings, switch the monitor off and back on, and check the live log: if you see `no reply` streaks instead of `off (power button)`, open an issue, it can be supported with a "no reply = off" option.
 - **Windows didn't come back to the right screen.** Windows 11 also has *Settings → System → Display → Multiple displays → Remember window locations based on monitor connection*. Turn it on; MonitorFollow's own restore then acts as a fast path.
+- **I cut the monitor's power (or unplugged it) instead of using the button.** Windows then removes the monitor completely, so it falls back to the laptop screen on its own: no display can ever be the last one to go. When the monitor is powered again, MonitorFollow rebinds, re-checks its power state and re-applies the right layout, retrying until Windows has finished renegotiating the link.
 - **I'm stuck with a black laptop screen.** Press `Ctrl+Alt+Shift+E`, or `Win+P` then `↑` then `Enter` (selects Extend blind), or simply turn the external monitor on.
 
 ## Contributing

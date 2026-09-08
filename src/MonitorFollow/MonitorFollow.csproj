@@ -11,7 +11,7 @@
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <AssemblyName>MonitorFollow</AssemblyName>
     <RootNamespace>MonitorFollow</RootNamespace>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <Authors>f-liva</Authors>
     <Product>MonitorFollow</Product>
     <Description>Your laptop screen follows the power button of your external monitor.</Description>
