@@ -60,14 +60,27 @@ public partial class App : Application
 
     public void ShowWindow()
     {
-        if (_window is null || !_window.IsLoaded)
+        try
         {
-            _window = new MainWindow(this);
-            _window.Closed += (_, _) => _window = null;
+            if (_window is null || !_window.IsLoaded)
+            {
+                _window = new MainWindow(this);
+                _window.Closed += (_, _) => _window = null;
+            }
+            _window.Show();
+            if (_window.WindowState == WindowState.Minimized) _window.WindowState = WindowState.Normal;
+            _window.Activate();
         }
-        _window.Show();
-        if (_window.WindowState == WindowState.Minimized) _window.WindowState = WindowState.Normal;
-        _window.Activate();
+        catch (Exception ex)
+        {
+            // A missing framework file here means the shared .NET runtime was updated underneath us: the watcher
+            // keeps working, but the UI can't be created until the app is restarted.
+            Log.Write("could not open window: " + ex);
+            _window = null;
+            MessageBox.Show("MonitorFollow could not open its window.\n\n" + ex.Message +
+                            "\n\nThe monitor watcher is still running. Exit from the tray menu and start MonitorFollow again.",
+                "MonitorFollow", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
     }
 
     public void RefreshHotkey() => _tray.RegisterHotkey();

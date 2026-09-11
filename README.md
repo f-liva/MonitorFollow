@@ -38,13 +38,13 @@ Design choices that keep you safe:
 - Windows 10 (1903+) or Windows 11.
 - An external monitor connected **directly to the GPU** (HDMI, DisplayPort, USB‑C DP Alt Mode). DisplayLink adapters do not pass DDC/CI.
 - **DDC/CI enabled** in the monitor's OSD menu (it usually is).
-- [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) for the small build, or use the self-contained build.
+- Nothing else for `MonitorFollow-selfcontained.exe` (recommended). The small `MonitorFollow.exe` needs the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) and can break when Windows Update replaces that runtime while the app is running, see Troubleshooting.
 
 Tested with a Dell U3415W over HDMI on Windows 11. Reports for other monitors are very welcome: open an issue with your model and what the *Settings* window shows in "Power mode now" when the monitor is off.
 
 ## Install
 
-1. Download `MonitorFollow.exe` from the [Releases](../../releases) page.
+1. Download `MonitorFollow-selfcontained.exe` from the [Releases](../../releases) page (or the small `MonitorFollow.exe` if you already keep the .NET 8 Desktop Runtime around).
 2. Run it. A monitor icon appears in the notification area (bottom right, maybe behind the `^` arrow).
 3. The Settings window opens on first run: pick your external monitor, tick **Start with Windows**, Save.
 4. Press the power button on the monitor. Done.
@@ -74,10 +74,10 @@ Settings and log live in `%APPDATA%\MonitorFollow\`.
 ```powershell
 git clone https://github.com/f-liva/MonitorFollow
 cd MonitorFollow
-dotnet publish src/MonitorFollow -c Release -r win-x64 --self-contained false -o out
+dotnet publish src/MonitorFollow -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o out
 ```
 
-Add `--self-contained true` for a single exe that does not need the .NET runtime (~70 MB).
+Use `--self-contained false` for the small build that relies on the installed .NET 8 Desktop Runtime.
 
 ## Troubleshooting
 
@@ -85,6 +85,7 @@ Add `--self-contained true` for a single exe that does not need the .NET runtime
 - **The monitor is listed but nothing happens when I switch it off.** Some monitors stop answering DDC/CI when off instead of reporting "off". Open Settings, switch the monitor off and back on, and check the live log: if you see `no reply` streaks instead of `off (power button)`, open an issue, it can be supported with a "no reply = off" option.
 - **Windows didn't come back to the right screen.** Windows 11 also has *Settings → System → Display → Multiple displays → Remember window locations based on monitor connection*. Turn it on; MonitorFollow's own restore then acts as a fast path.
 - **I cut the monitor's power (or unplugged it) instead of using the button.** Windows then removes the monitor completely, so it falls back to the laptop screen on its own: no display can ever be the last one to go. When the monitor is powered again, MonitorFollow rebinds, re-checks its power state and re-applies the right layout, retrying until Windows has finished renegotiating the link.
+- **Clicking the tray icon does nothing, or the app vanished after a few days.** With the small build, a .NET runtime update (Windows Update, winget) can replace the runtime files while MonitorFollow is running; the watcher keeps going, but the first time the window needs a not-yet-loaded framework file it fails. Restart the app, and prefer the self-contained build, which carries its own runtime.
 - **I'm stuck with a black laptop screen.** Press `Ctrl+Alt+Shift+E`, or `Win+P` then `↑` then `Enter` (selects Extend blind), or simply turn the external monitor on.
 
 ## Contributing

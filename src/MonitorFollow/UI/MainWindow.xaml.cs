@@ -68,23 +68,50 @@ public partial class MainWindow : FluentWindow
 
     // ----- monitor detection -----
 
-    private void Detect()
+    private bool _detecting;
+
+    /// <summary>DDC/CI calls can block for seconds (or hang while a monitor renegotiates its link), so they run off the UI thread.</summary>
+    private async void Detect()
     {
-        _found.Clear();
-        MonitorCombo.Items.Clear();
-        foreach (var pm in Ddc.Enumerate())
+        if (_detecting) return;
+        _detecting = true;
+        MonitorCombo.IsEnabled = false;
+        MonitorInfo.Text = "Detecting monitors…";
+        List<(string Description, string Info)> found;
+        try
         {
-            try
+            found = await Task.Run(() =>
             {
-                var power = Ddc.ReadPower(pm.Handle);
-                var caps = Ddc.ReadCapabilities(pm.Handle);
-                bool inCaps = Ddc.SupportsPowerMode(caps);
-                if (power is null && !inCaps) continue;
-                _found.Add((pm.Description, $"Power mode now: {Ddc.PowerToText(power)} · VCP D6 advertised: {(inCaps ? "yes" : "unknown")}"));
-                MonitorCombo.Items.Add(new ComboBoxItem { Content = pm.Description });
-            }
-            finally { Ddc.DestroyPhysicalMonitor(pm.Handle); }
+                var list = new List<(string, string)>();
+                foreach (var pm in Ddc.Enumerate())
+                {
+                    try
+                    {
+                        var power = Ddc.ReadPower(pm.Handle);
+                        var caps = Ddc.ReadCapabilities(pm.Handle);
+                        bool inCaps = Ddc.SupportsPowerMode(caps);
+                        if (power is null && !inCaps) continue;
+                        list.Add((pm.Description, $"Power mode now: {Ddc.PowerToText(power)} · VCP D6 advertised: {(inCaps ? "yes" : "unknown")}"));
+                    }
+                    finally { Ddc.DestroyPhysicalMonitor(pm.Handle); }
+                }
+                return list;
+            });
         }
+        catch (Exception ex)
+        {
+            Log.Write("monitor detection failed: " + ex.Message);
+            found = new();
+        }
+        if (IsDisposedOrClosed()) return;
+
+        _found.Clear();
+        _found.AddRange(found);
+        MonitorCombo.Items.Clear();
+        foreach (var f in _found) MonitorCombo.Items.Add(new ComboBoxItem { Content = f.Description });
+        MonitorCombo.IsEnabled = true;
+        _detecting = false;
+
         if (_found.Count == 0)
         {
             MonitorInfo.Text = "No DDC/CI-capable monitor found. Enable DDC/CI in the monitor's OSD menu and make sure it is connected directly to the GPU (DisplayLink docks don't pass DDC/CI).";
@@ -94,6 +121,9 @@ public partial class MainWindow : FluentWindow
             : _found.FindIndex(f => f.Description.Contains(_app.Settings.MonitorMatch, StringComparison.OrdinalIgnoreCase));
         MonitorCombo.SelectedIndex = idx >= 0 ? idx : 0;
     }
+
+    private bool _closed;
+    private bool IsDisposedOrClosed() => _closed;
 
     private void MonitorCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -181,6 +211,7 @@ public partial class MainWindow : FluentWindow
     // Closing the window keeps the app alive in the tray.
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
+        _closed = true;
         Log.Written -= _logHandler;
         _app.Watcher.StateChanged -= OnState;
         base.OnClosing(e);

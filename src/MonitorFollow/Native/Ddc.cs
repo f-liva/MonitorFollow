@@ -30,30 +30,41 @@ public static class Ddc
     [DllImport("dxva2.dll")] private static extern bool GetCapabilitiesStringLength(IntPtr handle, out uint length);
     [DllImport("dxva2.dll")] private static extern bool CapabilitiesRequestAndCapabilitiesReply(IntPtr handle, StringBuilder caps, uint length);
 
+    /// <summary>DDC/CI is a slow serial bus; overlapping calls from two threads (watcher + settings window) make it hang. Serialize them.</summary>
+    private static readonly object Bus = new();
+
     /// <summary>Enumerates every physical monitor. The caller owns the handles and must call <see cref="DestroyPhysicalMonitor"/> on each.</summary>
     public static List<PhysicalMonitor> Enumerate()
     {
-        var hmons = new List<IntPtr>();
-        EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (IntPtr h, IntPtr dc, ref RECT r, IntPtr d) => { hmons.Add(h); return true; }, IntPtr.Zero);
-        var result = new List<PhysicalMonitor>();
-        foreach (var hm in hmons)
+        lock (Bus)
         {
-            if (!GetNumberOfPhysicalMonitorsFromHMONITOR(hm, out var n) || n == 0) continue;
-            var arr = new PhysicalMonitor[n];
-            if (GetPhysicalMonitorsFromHMONITOR(hm, n, arr)) result.AddRange(arr);
+            var hmons = new List<IntPtr>();
+            EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (IntPtr h, IntPtr dc, ref RECT r, IntPtr d) => { hmons.Add(h); return true; }, IntPtr.Zero);
+            var result = new List<PhysicalMonitor>();
+            foreach (var hm in hmons)
+            {
+                if (!GetNumberOfPhysicalMonitorsFromHMONITOR(hm, out var n) || n == 0) continue;
+                var arr = new PhysicalMonitor[n];
+                if (GetPhysicalMonitorsFromHMONITOR(hm, n, arr)) result.AddRange(arr);
+            }
+            return result;
         }
-        return result;
     }
 
     /// <summary>Reads VCP 0xD6. Returns null when the monitor does not answer (also happens briefly during power transitions).</summary>
     public static int? ReadPower(IntPtr handle)
-        => GetVCPFeatureAndVCPFeatureReply(handle, VcpPowerMode, out _, out var cur, out _) ? (int)cur : null;
+    {
+        lock (Bus) return GetVCPFeatureAndVCPFeatureReply(handle, VcpPowerMode, out _, out var cur, out _) ? (int)cur : null;
+    }
 
     public static string? ReadCapabilities(IntPtr handle)
     {
-        if (!GetCapabilitiesStringLength(handle, out var len) || len == 0) return null;
-        var sb = new StringBuilder((int)len);
-        return CapabilitiesRequestAndCapabilitiesReply(handle, sb, len) ? sb.ToString() : null;
+        lock (Bus)
+        {
+            if (!GetCapabilitiesStringLength(handle, out var len) || len == 0) return null;
+            var sb = new StringBuilder((int)len);
+            return CapabilitiesRequestAndCapabilitiesReply(handle, sb, len) ? sb.ToString() : null;
+        }
     }
 
     /// <summary>True when the MCCS capabilities string advertises VCP D6.</summary>

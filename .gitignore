@@ -1,6 +1,7 @@
 bin/
 obj/
 out/
+out-*/
 *.user
 *.suo
 .vs/
