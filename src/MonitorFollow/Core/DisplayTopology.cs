@@ -19,19 +19,46 @@ public static class DisplayTopology
     private const uint SDC_TOPOLOGY_EXTEND = 0x00000004;
     private const uint SDC_TOPOLOGY_EXTERNAL = 0x00000008;
 
+    /// <summary>How long to keep retrying while the locked session denies the switch, and how often.</summary>
+    private const int DeniedRetryMs = 25000;
+    private const int DeniedPollMs = 400;
+
     [DllImport("user32.dll")]
     private static extern int SetDisplayConfig(uint numPathArrayElements, IntPtr pathArray,
         uint numModeInfoArrayElements, IntPtr modeInfoArray, uint flags);
 
     private static string DisplaySwitch => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "DisplaySwitch.exe");
 
-    /// <summary>Applies a projection topology through the API; falls back to DisplaySwitch.exe if it fails.</summary>
+    private const int ERROR_ACCESS_DENIED = 5;
+
+    /// <summary>
+    /// Applies a projection topology through the API, retrying while the call is denied, and falls back
+    /// to DisplaySwitch.exe only if it fails for any other reason.
+    ///
+    /// For the first seconds after the session is locked the secure desktop owns the display and
+    /// SetDisplayConfig answers 5 (ERROR_ACCESS_DENIED); it starts working on its own shortly after, so
+    /// the right move is to keep asking rather than give up. Giving up here used to leave the laptop panel
+    /// powered but black for over ten seconds.
+    /// </summary>
     private static void Apply(uint topology, string switchArg)
     {
-        // SDC_TOPOLOGY_* accepts only SDC_APPLY: any other flag (SDC_ALLOW_PATH_ORDER_CHANGES in
-        // particular, which needs SDC_USE_SUPPLIED_DISPLAY_CONFIG) makes the call fail with 87.
-        int rc = SetDisplayConfig(0, IntPtr.Zero, 0, IntPtr.Zero, SDC_APPLY | topology);
-        if (rc == 0) return;
+        var deadline = Environment.TickCount64 + DeniedRetryMs;
+        bool logged = false;
+        int rc;
+        while (true)
+        {
+            // SDC_TOPOLOGY_* accepts only SDC_APPLY: any other flag (SDC_ALLOW_PATH_ORDER_CHANGES in
+            // particular, which needs SDC_USE_SUPPLIED_DISPLAY_CONFIG) makes the call fail with 87.
+            rc = SetDisplayConfig(0, IntPtr.Zero, 0, IntPtr.Zero, SDC_APPLY | topology);
+            if (rc == 0)
+            {
+                if (logged) Log.Write($"SetDisplayConfig({switchArg}) accepted once the lock screen settled");
+                return;
+            }
+            if (rc != ERROR_ACCESS_DENIED || Environment.TickCount64 >= deadline) break;
+            if (!logged) { Log.Write($"SetDisplayConfig({switchArg}) denied (locked session), retrying"); logged = true; }
+            Thread.Sleep(DeniedPollMs);
+        }
 
         Log.Write($"SetDisplayConfig({switchArg}) failed with {rc}, falling back to DisplaySwitch");
         try
